@@ -13,7 +13,7 @@ plugins {
 
 android {
     namespace = "com.lastwave.app"
-    compileSdk = 37
+    compileSdk = 35
 
     val localProps = Properties().apply {
         val localPropsFile = rootProject.file("local.properties")
@@ -93,9 +93,6 @@ android {
             cmake {
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
-                    // Android 15+ can boot with 16 KB memory pages; all native
-                    // libraries must be built/aligned accordingly. Ignored
-                    // harmlessly by NDK toolchains that predate the flag.
                     "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
                     "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
                 )
@@ -106,6 +103,12 @@ android {
     }
 
     signingConfigs {
+        create("debugConfig") {
+            storeFile = file("${rootDir}/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         create("release") {
             val base64Key = resolveSecret("SIGNING_KEY")
             val storeFilePath = resolveSecret("RELEASE_STORE_FILE")
@@ -138,28 +141,38 @@ android {
                 enableV2Signing = true
                 enableV3Signing = true
             } else {
-                initWith(getByName("debug"))
+                initWith(getByName("debugConfig"))
             }
         }
     }
 
-buildTypes {
-    getByName("release") {
-        isMinifyEnabled = true
-        isShrinkResources = true
-        signingConfig = null
-        proguardFiles(
-            getDefaultProguardFile("proguard-android-optimize.txt"),
-            "proguard-rules.pro"
-        )
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debugConfig")
+        }
+        getByName("release") {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        create("rawRelease") {
+            initWith(getByName("release"))
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
+        }
     }
-    create("rawRelease") {
-        initWith(getByName("release"))
-        isMinifyEnabled = false
-        isShrinkResources = false
-        signingConfig = null
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
-  }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -172,12 +185,6 @@ buildTypes {
         compose = true
         buildConfig = true
         prefab = true
-    }
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
     }
 
     packaging {

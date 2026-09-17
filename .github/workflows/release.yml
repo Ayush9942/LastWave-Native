@@ -32,10 +32,10 @@ jobs:
           ref: ${{ inputs.tag_name }}
           fetch-depth: 0
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: gradle
 
@@ -87,14 +87,18 @@ jobs:
           # Universal release (Android 10+, R8 + ProGuard + shrinkResources)
           if [ -f "app/build/outputs/apk/release/app-release-signed.apk" ]; then
             cp app/build/outputs/apk/release/app-release-signed.apk final_apk/LastWave-v${TAG}-universal.apk
-          else
+          elif [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
             cp app/build/outputs/apk/release/app-release.apk final_apk/LastWave-v${TAG}-universal.apk
+          elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            cp app/build/outputs/apk/release/app-release-unsigned.apk final_apk/LastWave-v${TAG}-universal.apk
           fi
           # Universal uncompressed variant (Android 10+, raw debuggable/unminified)
           if [ -f "app/build/outputs/apk/rawRelease/app-rawRelease-signed.apk" ]; then
             cp app/build/outputs/apk/rawRelease/app-rawRelease-signed.apk final_apk/LastWave-v${TAG}-universal-uncompressed.apk
-          else
+          elif [ -f "app/build/outputs/apk/rawRelease/app-rawRelease.apk" ]; then
             cp app/build/outputs/apk/rawRelease/app-rawRelease.apk final_apk/LastWave-v${TAG}-universal-uncompressed.apk
+          elif [ -f "app/build/outputs/apk/rawRelease/app-rawRelease-unsigned.apk" ]; then
+            cp app/build/outputs/apk/rawRelease/app-rawRelease-unsigned.apk final_apk/LastWave-v${TAG}-universal-uncompressed.apk
           fi
           rm -rf app/build/outputs/apk/release/*
 
@@ -128,8 +132,10 @@ jobs:
           TAG="${{ inputs.tag_name }}"
           if [ -f "app/build/outputs/apk/release/app-release-signed.apk" ]; then
             cp app/build/outputs/apk/release/app-release-signed.apk final_apk/LastWave-v${TAG}-android7.apk
-          else
+          elif [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
             cp app/build/outputs/apk/release/app-release.apk final_apk/LastWave-v${TAG}-android7.apk
+          elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            cp app/build/outputs/apk/release/app-release-unsigned.apk final_apk/LastWave-v${TAG}-android7.apk
           fi
           ls -lh final_apk/
 
