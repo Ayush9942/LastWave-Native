@@ -228,6 +228,8 @@ import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.math.abs
+import androidx.compose.material.icons.filled.Group
+import com.lastwave.app.ui.sync.RoomSyncBottomSheet
 
 enum class FullPlayerTab {
     NOW_PLAYING,
@@ -1432,6 +1434,7 @@ private fun FullPlayer(
         }
     }
     var showTrackMenu by remember(track.videoId, track.title) { mutableStateOf(false) }
+    var showSyncSheet by remember { mutableStateOf(false) }
     var artworkDragX by remember(track.videoId, track.title) { mutableFloatStateOf(0f) }
     var dismissDragY by remember(track.videoId, track.title) { mutableFloatStateOf(0f) }
     var isDismissDragging by remember { mutableStateOf(false) }
@@ -2182,6 +2185,39 @@ private fun FullPlayer(
                                                 }
                                             }
                                         }
+                                        val syncInteraction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                                        val isSyncPressed by syncInteraction.collectIsPressedAsState()
+                                        val syncScale by animateFloatAsState(
+                                            targetValue = if (isSyncPressed) 0.82f else 1.0f,
+                                            animationSpec = ExpressiveMotion.spatialSpring(),
+                                            label = "syncScale",
+                                          
+                                        )
+                                        LiquidGlassSurface(
+                                            glassModifier = Modifier.liquidGlassChrome(CircleShape, LocalLiquidGlass.current , LiquidGlassPreset.PlayerControls ),
+                                            onClick = { showSyncSheet = true },
+                                            interactionSource = syncInteraction,
+                                            shape = CircleShape,
+                                            color = liquidGlassContainer(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.40f)),
+                                            contentColor = MaterialTheme.colorScheme.primary,
+                                            tonalElevation= 0.dp,
+                                            shadowElevation = 0.dp,
+                                            modifier = Modifier
+                                                 .size(46.dp)
+                                                 .graphicsLayer {
+                                                     scaleX = syncScale
+                                                     scaleY = syncScale
+                                                 },
+                                        ){
+                                          Box(contentAlignment = Alignment.Center)  {
+                                              Icon(
+                                                  Icons.Filled.Group,
+                                                  contentDescription = "Room Sync",
+                                                  modifier= Modifier.size(24.dp),
+                                                
+                                              )
+                                          }
+                                        }
                                     }
                                     Spacer(Modifier.height(14.dp))
                                     SeekBar(
@@ -2250,6 +2286,12 @@ private fun FullPlayer(
             playableTrack = track,
             onDismiss = { showTrackMenu = false },
             onPlayInLastWave = { player.play(track, sourceLabel = state.sourceLabel) },
+        )
+    }
+
+    if (showSyncSheet) {
+        RoomSyncBottomSheet(
+            onDismiss = { showSyncSheet = false}
         )
     }
 }

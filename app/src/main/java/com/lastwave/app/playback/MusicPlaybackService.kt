@@ -58,6 +58,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import com.lastwave.app.data.websocket.WebSocketManager
+import com.lastwave.app.data.websocket.ActionType
 
 private val TOPIC_SUFFIX_REGEX = Regex("""(?i)\s*-\s*topic$""")
 private val VEVO_SUFFIX_REGEX = Regex("""(?i)\s*vevo$""")
@@ -94,6 +96,7 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
     @Inject lateinit var themeRepository: ThemeRepository
     @Inject lateinit var artworkRepository: com.lastwave.app.data.artwork.ArtworkRepository
     @Inject lateinit var androidAutoLibrary: AndroidAutoMediaLibrary
+    @Inject lateinit var webSocketManager: WebSocketManager
 
     // SupervisorJob stops sibling failure propagation; the handler below
     // additionally stops an unexpected exception in any fire-and-forget
@@ -145,6 +148,8 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
 
     override fun onCreate() {
         super.onCreate()
+        observeWebSocketEvents()
+        
         val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
         playbackWakeLock = powerManager?.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
@@ -166,11 +171,21 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
                         MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS,
                 )
                 setCallback(object : MediaSessionCompat.Callback() {
-                    override fun onPlay() = musicPlayer.resume()
-                    override fun onPause() = musicPlayer.pause()
+                    override fun onPlay() {
+                        musicPlayer.resume()
+                        webSocketManager.sendPlay()
+                    }
+                    
+                    override fun onPause() {
+                        musicPlayer.pause()
+                        webSocketManager.sendPause()
+                    }
                     override fun onSkipToNext() = musicPlayer.next()
                     override fun onSkipToPrevious() = musicPlayer.previous()
-                    override fun onSeekTo(pos: Long) = musicPlayer.seekTo(pos)
+                    override fun onSeekTo(pos: Long) {
+                        musicPlayer.seekTo(pos)
+                        webSocketManager.sendSeek(pos)
+                    }
                     override fun onStop() = musicPlayer.stopAndClear()
                     override fun onSkipToQueueItem(id: Long) = musicPlayer.seekToQueueItem(id.toInt())
                     override fun onSetShuffleMode(shuffleMode: Int) {
@@ -279,6 +294,46 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
         startDetector()
     }
 
+    private fun observeWebSocketEvents() {
+    scope.launch {
+        webSocketManager.events.collect { event ->
+            when (event.action) {
+                ActionType.PLAY -> {
+                    musicPlayer.resume()
+                }
+                ActionType.PAUSE -> {
+                    musicPlayer.pause()
+                }
+                ActionType.SEEK -> {
+                    musicPlayer.seekTo(event.seekPosition)
+                }
+                ActionType.SYNC -> {
+                    if (event.isPlaying) {
+                        musicPlayer.seekTo(event.seekPosition)
+                        musicPlayer.resume()
+                    } else {
+                        musicPlayer.seekTo(event.seekPosition)
+                        musicPlayer.pause()
+                    }
+                }
+                ActionType.TRACK_CHANGE -> {
+                    event.trackId?.let { id ->
+                      val targetIndex = musicPlayer.state.value.queue.indexOfFirst{
+                          it.videoId == id 
+                      }
+                      if (targetIndex != -1) {
+                          musicPlayer.seekToQueueItem(targetIndex)
+                          musicPlayer.resume()
+                      }
+                        // Load or play the track using your existing queue/player methods
+                        // e.g., musicPlayer.playFromMediaId(trackId)
+                    }
+                }
+            }
+        }
+    }
+    }
+    
     override fun onGetRoot(
         clientPackageName: String,
         clientUid: Int,
@@ -537,6 +592,13 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
             ACTION_SHUFFLE -> musicPlayer.toggleShuffle()
             ACTION_REPEAT -> musicPlayer.cycleRepeatMode()
             ACTION_STOP -> musicPlayer.stopAndClear()
+            ACTION_JOIN_ROOM -> {
+                val roomId = intent.getStringExtra("EXTRA_ROOM_ID") ?: return START_STICKY
+                webSocketManager.connect(roomId)
+            }
+            ACTION_LEAVE_ROOM -> {
+                webSocketManager.disconnect()
+            }
         }
         return START_STICKY
     }
@@ -563,6 +625,7 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
     }
 
     override fun onDestroy() {
+        webSocketManager.disconnect()
         runCatching { if (playbackWakeLock?.isHeld == true) playbackWakeLock?.release() }
         runCatching { if (playbackWifiLock?.isHeld == true) playbackWifiLock?.release() }
         detectorJob?.cancel()
