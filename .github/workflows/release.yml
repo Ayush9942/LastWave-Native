@@ -41,11 +41,13 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK Platform
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-37" "platforms;android-36" "build-tools;35.0.0" || true
+        with:
+          accept-android-sdk-licenses: true
+          packages: |
+            platform-tools
+            platforms;android-36
+            platforms;android-37
+            build-tools;35.0.0
 
       - name: Grant Gradle execute permission
         run: chmod +x gradlew
