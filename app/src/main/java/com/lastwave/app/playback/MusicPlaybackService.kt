@@ -305,10 +305,14 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
                     musicPlayer.pause()
                 }
                 "SEEK" -> {
-                    event.seekPosition?.let { musicPlayer.seekTo(it) }
+                    event.seekPosition?.let { position ->
+                        musicPlayer.seekTo(positon)
+                    }
                 }
                 "SYNC" -> {
-                     event.seekPosition?.let { musicPlayer.seekTo(it) }
+                     event.seekPosition?.let { position->
+                         musicPlayer.seekTo(position)
+                     }
                      if (event.isPlaying == true) {
                         musicPlayer.resume()
                     } else {
