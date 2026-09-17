@@ -297,7 +297,7 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
     private fun observeWebSocketEvents() {
     scope.launch {
         webSocketManager.events.collect { event ->
-            when (event.action?.uppercase()) {
+            when (event.type?.uppercase()) {
                 "PLAY" -> {
                     musicPlayer.resume()
                 }
@@ -305,12 +305,12 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
                     musicPlayer.pause()
                 }
                 "SEEK" -> {
-                    event.seekPosition?.let { position ->
-                        musicPlayer.seekTo(positon)
+                    event.Position?.let { position ->
+                        musicPlayer.seekTo(position)
                     }
                 }
                 "SYNC" -> {
-                     event.seekPosition?.let { position->
+                     event.Position?.let { position->
                          musicPlayer.seekTo(position)
                      }
                      if (event.isPlaying == true) {
