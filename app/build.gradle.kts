@@ -13,7 +13,7 @@ plugins {
 
 android {
     namespace = "com.lastwave.app"
-    compileSdk = 35
+    compileSdk = 37
 
     val localProps = Properties().apply {
         val localPropsFile = rootProject.file("local.properties")
@@ -47,7 +47,7 @@ android {
     defaultConfig {
         applicationId = "com.lastwave.app"
         minSdk = (project.findProperty("minSdk") as? String)?.toIntOrNull() ?: 29
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 17
         versionName = "4.1.0"
 
@@ -289,7 +289,7 @@ dependencies {
     implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.2.1+1")
 
     // Core library desugaring required by the FFmpeg decoder AAR metadata.
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
     // Low-latency native output. Version 1.10 remains API-compatible with the
     // requested Oboe 1.8+ baseline and exposes its CMake target through Prefab.
