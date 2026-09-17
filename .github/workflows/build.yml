@@ -2,15 +2,20 @@ name: Build LastWave APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
   build:
     name: Build Release APKs
     runs-on: ubuntu-latest
+
     env:
       SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
 
@@ -22,7 +27,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '21'
-          distribution: 'temurin'
+          distribution: temurin
           cache: gradle
 
       - name: Set up Android SDK
@@ -34,17 +39,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager --update
-          sdkmanager \
+
+          sdkmanager --sdk_root="${ANDROID_HOME}" \
             "platform-tools" \
             "platforms;android-36" \
             "platforms;android-37" \
             "build-tools;35.0.0"
 
       - name: Grant Gradle execute permission
-        run: chmod +x gradlew
+        run: chmod +x ./gradlew
 
-      - name: Build Android 10 Release APKs (compressed + raw)
+      - name: Build Android release APKs
         env:
           LOSSLESS_BACKEND_URL: ${{ secrets.LOSSLESS_BACKEND_URL }}
           LOSSLESS_API_KEY: ${{ secrets.LOSSLESS_API_KEY }}
@@ -56,8 +61,8 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease assembleRawRelease --stacktrace
 
-      - name: Sign Release APK with Custom Key (Optional)
-        if: env.SIGNING_KEY != ''
+      - name: Sign Release APK with Custom Key
+        if: ${{ env.SIGNING_KEY != '' }}
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
@@ -67,10 +72,10 @@ jobs:
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD || secrets.RELEASE_STORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD || secrets.RELEASE_KEY_PASSWORD }}
         env:
-          BUILD_TOOLS_VERSION: "35.0.0"
+          BUILD_TOOLS_VERSION: '35.0.0'
 
-      - name: Sign Raw APK with Custom Key (Optional)
-        if: env.SIGNING_KEY != ''
+      - name: Sign Raw APK with Custom Key
+        if: ${{ env.SIGNING_KEY != '' }}
         uses: r0adkll/sign-android-release@v1
         id: sign_app_raw
         with:
@@ -80,4 +85,4 @@ jobs:
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD || secrets.RELEASE_STORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD || secrets.RELEASE_KEY_PASSWORD }}
         env:
-          BUILD_TOOLS_VERSION: "35.0.0"
+          BUILD_TOOLS_VERSION: '35.0.0'
