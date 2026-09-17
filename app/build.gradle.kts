@@ -47,7 +47,7 @@ android {
     defaultConfig {
         applicationId = "com.lastwave.app"
         minSdk = (project.findProperty("minSdk") as? String)?.toIntOrNull() ?: 29
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 17
         versionName = "4.1.0"
 
@@ -93,6 +93,9 @@ android {
             cmake {
                 arguments += listOf(
                     "-DANDROID_STL=c++_shared",
+                    // Android 15+ can boot with 16 KB memory pages; all native
+                    // libraries must be built/aligned accordingly. Ignored
+                    // harmlessly by NDK toolchains that predate the flag.
                     "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
                     "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
                 )
@@ -103,12 +106,6 @@ android {
     }
 
     signingConfigs {
-        create("debugConfig") {
-            storeFile = file("${rootDir}/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
         create("release") {
             val base64Key = resolveSecret("SIGNING_KEY")
             val storeFilePath = resolveSecret("RELEASE_STORE_FILE")
@@ -141,38 +138,28 @@ android {
                 enableV2Signing = true
                 enableV3Signing = true
             } else {
-                initWith(getByName("debugConfig"))
+                initWith(getByName("debug"))
             }
         }
     }
 
-    buildTypes {
-        getByName("debug") {
-            signingConfig = signingConfigs.getByName("debugConfig")
-        }
-        getByName("release") {
-            isMinifyEnabled = false
-            isShrinkResources = false
-            signingConfig = signingConfigs.getByName("release")
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-        create("rawRelease") {
-            initWith(getByName("release"))
-            isMinifyEnabled = false
-            isShrinkResources = false
-            signingConfig = signingConfigs.getByName("release")
-        }
+buildTypes {
+    getByName("release") {
+        isMinifyEnabled = true
+        isShrinkResources = true
+        signingConfig = null
+        proguardFiles(
+            getDefaultProguardFile("proguard-android-optimize.txt"),
+            "proguard-rules.pro"
+        )
     }
-
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
+    create("rawRelease") {
+        initWith(getByName("release"))
+        isMinifyEnabled = false
+        isShrinkResources = false
+        signingConfig = null
     }
+  }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -185,6 +172,12 @@ android {
         compose = true
         buildConfig = true
         prefab = true
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     packaging {
@@ -289,7 +282,7 @@ dependencies {
     implementation("org.jellyfin.media3:media3-ffmpeg-decoder:1.2.1+1")
 
     // Core library desugaring required by the FFmpeg decoder AAR metadata.
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
     // Low-latency native output. Version 1.10 remains API-compatible with the
     // requested Oboe 1.8+ baseline and exposes its CMake target through Prefab.
