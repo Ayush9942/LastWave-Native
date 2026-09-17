@@ -59,7 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import com.lastwave.app.data.network.WebSocketManager
-import com.lastwave.app.data.network.ActionType
+import com.lastwave.app.data.model.ActionType
 
 private val TOPIC_SUFFIX_REGEX = Regex("""(?i)\s*-\s*topic$""")
 private val VEVO_SUFFIX_REGEX = Regex("""(?i)\s*vevo$""")
@@ -297,26 +297,25 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
     private fun observeWebSocketEvents() {
     scope.launch {
         webSocketManager.events.collect { event ->
-            when (event.action) {
-                ActionType.PLAY -> {
+            when (event.action?.uppercase()) {
+                "PLAY" -> {
                     musicPlayer.resume()
                 }
-                ActionType.PAUSE -> {
+                "PAUSE" -> {
                     musicPlayer.pause()
                 }
-                ActionType.SEEK -> {
-                    musicPlayer.seekTo(event.seekPosition)
+                "SEEK" -> {
+                    event.seekPosition?.let { musicPlayer.seekTo(it) }
                 }
-                ActionType.SYNC -> {
-                    if (event.isPlaying) {
-                        musicPlayer.seekTo(event.seekPosition)
+                "SYNC" -> {
+                     event.seekPosition?.let { musicPlayer.seekTo(it) }
+                     if (event.isPlaying == true) {
                         musicPlayer.resume()
                     } else {
-                        musicPlayer.seekTo(event.seekPosition)
                         musicPlayer.pause()
                     }
                 }
-                ActionType.TRACK_CHANGE -> {
+                "TRACK_CHANGE" -> {
                     event.trackId?.let { id ->
                       val targetIndex = musicPlayer.state.value.queue.indexOfFirst{
                           it.videoId == id 
@@ -593,7 +592,7 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
             ACTION_REPEAT -> musicPlayer.cycleRepeatMode()
             ACTION_STOP -> musicPlayer.stopAndClear()
             ACTION_JOIN_ROOM -> {
-                val roomId = intent.getStringExtra("EXTRA_ROOM_ID") ?: return START_STICKY
+                val roomId = intent?.getStringExtra("EXTRA_ROOM_ID") ?: return START_STICKY
                 webSocketManager.connect(roomId)
             }
             ACTION_LEAVE_ROOM -> {
@@ -1358,6 +1357,9 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
         const val ACTION_SHUFFLE = "com.lastwave.app.playback.SHUFFLE"
         const val ACTION_REPEAT = "com.lastwave.app.playback.REPEAT"
         const val ACTION_STOP = "com.lastwave.app.playback.STOP"
+        const val ACTION_JOIN_ROOM = "com.lastwave.app.action.JOIN_ROOM"
+        const val ACTION_LEAVE_ROOM = "com.lastwave.app.action.LEAVE_ROOM"
+        const val EXTRA_ROOM_ID = "com.lastwave.app.extra.ROOM_ID"
     }
 }
 

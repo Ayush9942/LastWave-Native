@@ -46,8 +46,8 @@ class RoomSyncViewModel @Inject constructor(
         
         // Send command to MusicPlaybackService via Intent
         val intent = Intent(context, MusicPlaybackService::class.java).apply {
-            action = "ACTION_JOIN_ROOM"
-            putExtra("EXTRA_ROOM_ID", roomId)
+            action = "com.lastwave.app.action.JOIN_ROOM"
+            putExtra("com.lastwave.app.extra.ROOM_ID", roomId)
         }
         context.startService(intent)
         
@@ -56,7 +56,7 @@ class RoomSyncViewModel @Inject constructor(
 
     fun leaveRoom() {
         val intent = Intent(context, MusicPlaybackService::class.java).apply {
-            action = "ACTION_LEAVE_ROOM"
+            action = "com.lastwave.app.action.LEAVE_ROOM"
         }
         context.startService(intent)
         

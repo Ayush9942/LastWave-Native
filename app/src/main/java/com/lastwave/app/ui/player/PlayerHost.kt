@@ -2198,7 +2198,7 @@ private fun FullPlayer(
                                             onClick = { showSyncSheet = true },
                                             interactionSource = syncInteraction,
                                             shape = CircleShape,
-                                            color = liquidGlassContainer(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.40f)),
+                                            color = liquidGlassContainerColor(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.40f)),
                                             contentColor = MaterialTheme.colorScheme.primary,
                                             tonalElevation= 0.dp,
                                             shadowElevation = 0.dp,

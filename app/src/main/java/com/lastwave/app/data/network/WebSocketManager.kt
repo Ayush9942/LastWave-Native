@@ -15,12 +15,15 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class WebSocketManager(
+@Singleton
+class WebSocketManager @Inject constructor() {
     private val client: OkHttpClient = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .build()
-) {
+
     private var webSocket: WebSocket? = null
     private val scope = CoroutineScope(Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
@@ -55,8 +58,24 @@ class WebSocketManager(
     }
 
     fun sendEvent(event: RoomMessage): Boolean {
-        val text = json.encodeToString(event)
-        return webSocket?.send(text) ?: false
+        return try {
+            val text = json.encodeToString(event)
+            webSocket?.send(text) ?: false
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun sendPlay() {
+        sendEvent(RoomMessage(action = "PLAY"))
+    }
+
+    fun sendPause() {
+        sendEvent(RoomMessage(action = "PAUSE"))
+    }
+
+    fun sendSeek(positionMs: Long) {
+        sendEvent(RoomMessage(action = "SEEK", seekPosition = positionMs))
     }
 
     fun disconnect() {
