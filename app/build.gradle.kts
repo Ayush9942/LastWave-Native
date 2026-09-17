@@ -143,25 +143,23 @@ android {
         }
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
-        create("rawRelease") {
-            initWith(getByName("release"))
-            isMinifyEnabled = false
-            isShrinkResources = false
-            // Raw variant — no code/resource shrinking, no ProGuard/R8
-            signingConfig = signingConfigs.getByName("release")
-            // proguardFiles from initWith are ignored when minify is off
-        }
-        debug {
-            isDebuggable = true
-        }
+buildTypes {
+    getByName("release") {
+        isMinifyEnabled = true
+        isShrinkResources = true
+        signingConfig = null
+        proguardFiles(
+            getDefaultProguardFile("proguard-android-optimize.txt"),
+            "proguard-rules.pro"
+        )
     }
+    create("rawRelease") {
+        initWith(getByName("release"))
+        isMinifyEnabled = false
+        isShrinkResources = false
+        signingConfig = null
+    }
+  }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

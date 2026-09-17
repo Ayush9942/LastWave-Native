@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.lastwave.app.data.websocket.WebSocketManager
+import com.lastwave.app.data.network.WebSocketManager
 import com.lastwave.app.playback.MusicPlaybackService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

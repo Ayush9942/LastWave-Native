@@ -58,8 +58,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import com.lastwave.app.data.websocket.WebSocketManager
-import com.lastwave.app.data.websocket.ActionType
+import com.lastwave.app.data.network.WebSocketManager
+import com.lastwave.app.data.network.ActionType
 
 private val TOPIC_SUFFIX_REGEX = Regex("""(?i)\s*-\s*topic$""")
 private val VEVO_SUFFIX_REGEX = Regex("""(?i)\s*vevo$""")
