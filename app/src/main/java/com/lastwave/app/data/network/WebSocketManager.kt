@@ -1,5 +1,6 @@
 package com.lastwave.app.data.network
 
+import com.lastwave.app.data.model.ActionType
 import com.lastwave.app.data.model.RoomMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +27,10 @@ class WebSocketManager @Inject constructor() {
 
     private var webSocket: WebSocket? = null
     private val scope = CoroutineScope(Dispatchers.IO)
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     private val _events = MutableSharedFlow<RoomMessage>(extraBufferCapacity = 64)
     val events: SharedFlow<RoomMessage> = _events.asSharedFlow()
@@ -43,7 +47,7 @@ class WebSocketManager @Inject constructor() {
                     val message = json.decodeFromString<RoomMessage>(text)
                     scope.launch { _events.emit(message) }
                 } catch (_: Exception) {
-                    // Ignored malformed messages
+                    // Ignore malformed payloads
                 }
             }
 
@@ -60,22 +64,22 @@ class WebSocketManager @Inject constructor() {
     fun sendEvent(event: RoomMessage): Boolean {
         return try {
             val text = json.encodeToString(event)
-            webSocket?.send(text) ?: false
+            webSocket?.send(text) == true
         } catch (_: Exception) {
             false
         }
     }
 
     fun sendPlay() {
-        sendEvent(RoomMessage(action = "PLAY"))
+        sendEvent(RoomMessage(type = ActionType.PLAY))
     }
 
     fun sendPause() {
-        sendEvent(RoomMessage(action = "PAUSE"))
+        sendEvent(RoomMessage(type = ActionType.PAUSE))
     }
 
     fun sendSeek(positionMs: Long) {
-        sendEvent(RoomMessage(action = "SEEK", seekPosition = positionMs))
+        sendEvent(RoomMessage(type = ActionType.SEEK, positionMs = positionMs))
     }
 
     fun disconnect() {
