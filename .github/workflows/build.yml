@@ -48,6 +48,11 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease assembleRawRelease --stacktrace
 
+      - name: Show generated APKs
+        if: always()
+        run: |
+          find app/build/outputs -type f \( -name '*.apk' -o -name '*.aab' \) -print
+
       - name: Sign Release APK with Custom Key (Optional)
         if: env.SIGNING_KEY != ''
         uses: r0adkll/sign-android-release@v1
@@ -76,28 +81,53 @@ jobs:
 
       - name: Stage Android 10 Final APKs
         id: prep_apk
+        shell: bash
         run: |
+          set -euo pipefail
+
           mkdir -p final_apk
-          VERSION=$(grep 'versionName = ' app/build.gradle.kts | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')
-          if [ -z "$VERSION" ]; then
-            VERSION="4.1.0"
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+
+          VERSION=$(grep 'versionName = ' app/build.gradle.kts \
+            | head -n1 \
+            | sed -E 's/.*"([^"]+)".*/\1/')
+          VERSION="${VERSION:-4.1.0}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "APP_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "Building APKs for LastWave v$VERSION"
-          # Compressed release (Android 10+, R8 + ProGuard + shrinkResources)
-          if [ -f "app/build/outputs/apk/release/app-release-signed.apk" ]; then
-            cp app/build/outputs/apk/release/app-release-signed.apk final_apk/LastWave-v${VERSION}-release.apk
-          else
-            cp app/build/outputs/apk/release/app-release.apk final_apk/LastWave-v${VERSION}-release.apk
+
+          release_dir="app/build/outputs/apk/release"
+          raw_dir="app/build/outputs/apk/rawRelease"
+
+          release_apk=""
+          if [[ -d "$release_dir" ]]; then
+            release_apk=$(find "$release_dir" -maxdepth 1 -type f -name '*.apk' \
+              ! -name '*-mapping.apk' | sort | head -n1)
           fi
-          # Raw release (Android 10+, no minify, no shrink, no ProGuard)
-          if [ -f "app/build/outputs/apk/rawRelease/app-rawRelease-signed.apk" ]; then
-            cp app/build/outputs/apk/rawRelease/app-rawRelease-signed.apk final_apk/LastWave-v${VERSION}-raw.apk
-          else
-            cp app/build/outputs/apk/rawRelease/app-rawRelease.apk final_apk/LastWave-v${VERSION}-raw.apk
+
+          raw_apk=""
+          if [[ -d "$raw_dir" ]]; then
+            raw_apk=$(find "$raw_dir" -maxdepth 1 -type f -name '*.apk' \
+              ! -name '*-mapping.apk' | sort | head -n1)
           fi
+
+          if [[ -z "$release_apk" ]]; then
+            echo "::error::No release APK was generated"
+            find app/build/outputs -type f -print || true
+            exit 1
+          fi
+
+          if [[ -z "$raw_apk" ]]; then
+            echo "::error::No raw release APK was generated"
+            find app/build/outputs -type f -print || true
+            exit 1
+          fi
+
+          cp "$release_apk" "final_apk/LastWave-v${VERSION}-release.apk"
+          cp "$raw_apk" "final_apk/LastWave-v${VERSION}-raw.apk"
+
           rm -rf app/build/outputs/apk/release/*
+          echo "Staged:"
+          ls -lh final_apk
 
       - name: Build Android 7.0 Legacy APK (compressed)
         env:
@@ -125,13 +155,26 @@ jobs:
           BUILD_TOOLS_VERSION: "34.0.0"
 
       - name: Stage Android 7 Final APK
+        shell: bash
         run: |
+          set -euo pipefail
+
           VERSION="${{ steps.prep_apk.outputs.version }}"
-          if [ -f "app/build/outputs/apk/release/app-release-signed.apk" ]; then
-            cp app/build/outputs/apk/release/app-release-signed.apk final_apk/LastWave-v${VERSION}-android7.apk
-          else
-            cp app/build/outputs/apk/release/app-release.apk final_apk/LastWave-v${VERSION}-android7.apk
+          release_dir="app/build/outputs/apk/release"
+
+          legacy_apk=""
+          if [[ -d "$release_dir" ]]; then
+            legacy_apk=$(find "$release_dir" -maxdepth 1 -type f -name '*.apk' \
+              ! -name '*-mapping.apk' | sort | head -n1)
           fi
+
+          if [[ -z "$legacy_apk" ]]; then
+            echo "::error::No Android 7 release APK was generated"
+            find app/build/outputs -type f -print || true
+            exit 1
+          fi
+
+          cp "$legacy_apk" "final_apk/LastWave-v${VERSION}-android7.apk"
           ls -lh final_apk/
 
       - name: Upload Release APKs
