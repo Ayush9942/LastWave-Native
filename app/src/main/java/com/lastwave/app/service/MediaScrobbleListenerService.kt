@@ -246,7 +246,12 @@ class MediaScrobbleListenerService : NotificationListenerService() {
      *  next poll tick or the active-sessions-changed callback. */
     override fun onNotificationPosted(sbn: android.service.notification.StatusBarNotification?) {
         if (sbn == null) return
-        runCatching { refreshActiveSessions() }.onFailure { Log.w(TAG, "onNotificationPosted refresh failed", it) }
+        val pkg = sbn.packageName ?: return
+        // Only react to notifications originating from selected music packages or declaring a media session
+        val isMediaNotification = sbn.notification?.extras?.containsKey(android.app.Notification.EXTRA_MEDIA_SESSION) == true
+        if (pkg in selectedPackages || isMediaNotification) {
+            runCatching { refreshActiveSessions() }.onFailure { Log.w(TAG, "onNotificationPosted refresh failed", it) }
+        }
     }
     override fun onNotificationRemoved(sbn: android.service.notification.StatusBarNotification?) {}
 

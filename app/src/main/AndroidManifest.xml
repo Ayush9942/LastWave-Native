@@ -14,9 +14,43 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackages" />
+    <!-- Target audio playback and known music players without requiring QUERY_ALL_PACKAGES -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:mimeType="audio/*" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+        </intent>
+        <intent>
+            <action android:name="android.media.browse.MediaBrowserService" />
+        </intent>
+        <package android:name="com.spotify.music" />
+        <package android:name="com.google.android.apps.youtube.music" />
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.apple.android.music" />
+        <package android:name="deezer.android.app" />
+        <package android:name="com.aspiro.tidal" />
+        <package android:name="com.amazon.mp3" />
+        <package android:name="com.soundcloud.android" />
+        <package android:name="com.pandora.android" />
+        <package android:name="com.jio.media.jiobeats" />
+        <package android:name="wynk.com.airtel" />
+        <package android:name="com.gaana" />
+        <package android:name="com.jiosaavn.android" />
+        <package android:name="com.maxmpz.audioplayer" />
+        <package android:name="com.tbig.playerpro" />
+        <package android:name="com.simplemobiletools.musicplayer" />
+        <package android:name="org.videolan.vlc" />
+        <package android:name="com.frolo.muse" />
+        <package android:name="com.github.andreyasadchy.xtra" />
+        <package android:name="in.krosbits.musicolet" />
+        <package android:name="com.bsplayer.bspandroid.free" />
+        <package android:name="com.miui.player" />
+        <package android:name="com.samsung.android.app.music.chn" />
+        <package android:name="com.sec.android.app.music" />
+    </queries>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
@@ -86,7 +120,7 @@
             </intent-filter>
 
             <!-- YouTube & YouTube Music deep links / Open With -->
-            <intent-filter android:autoVerify="true">
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -100,7 +134,7 @@
             </intent-filter>
 
             <!-- Spotify deep links / Open With -->
-            <intent-filter android:autoVerify="true">
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -128,6 +162,9 @@
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
+            <meta-data
+                android:name="android.service.notification.default_filter_types"
+                android:value="conversations,alerting" />
         </service>
 
         <!-- Native background music player service -->
