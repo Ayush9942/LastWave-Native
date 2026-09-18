@@ -108,37 +108,50 @@ android {
     signingConfigs {
         create("release") {
             val base64Key = resolveSecret("SIGNING_KEY")
-            val storeFilePath = resolveSecret("RELEASE_STORE_FILE")
-            val storePasswordProp = resolveSecret("RELEASE_STORE_PASSWORD", "KEY_STORE_PASSWORD")
-            val keyAliasProp = resolveSecret("RELEASE_KEY_ALIAS", "ALIAS").ifBlank { "release_key" }
-            val keyPasswordProp = resolveSecret("RELEASE_KEY_PASSWORD", "KEY_PASSWORD").ifBlank { storePasswordProp }
+            val storePassword = resolveSecret(
+                "RELEASE_STORE_PASSWORD",
+                "KEY_STORE_PASSWORD"
+            )
+            val keyAlias = resolveSecret(
+                "RELEASE_KEY_ALIAS",
+                "ALIAS"
+            ).ifBlank { "release_key" }
+            val keyPassword = resolveSecret(
+                "RELEASE_KEY_PASSWORD",
+                "KEY_PASSWORD"
+            ).ifBlank { storePassword }
 
-            val keystoreFile: File? = when {
-                base64Key.isNotBlank() -> {
-                    try {
-                        val decodedBytes = Base64.getDecoder().decode(base64Key.trim())
-                        val tempKeystore = layout.buildDirectory.file("signing/release.keystore").get().asFile
-                        tempKeystore.parentFile.mkdirs()
-                        tempKeystore.writeBytes(decodedBytes)
-                        tempKeystore
-                    } catch (_: Exception) {
-                        null
-                    }
+            if (base64Key.isBlank()) {
+                logger.lifecycle("SIGNING_KEY is not configured; using debug signing")
+                initWith(getByName("debug"))
+            } else {
+                require(storePassword.isNotBlank()) {
+                    "SIGNING_KEY is set, but KEY_STORE_PASSWORD/RELEASE_STORE_PASSWORD is missing"
                 }
-                storeFilePath.isNotBlank() -> file(storeFilePath)
-                else -> null
-            }
 
-            if (keystoreFile != null && keystoreFile.exists() && storePasswordProp.isNotBlank()) {
+                val keystoreFile = layout.buildDirectory
+                    .file("signing/release.keystore")
+                    .get()
+                    .asFile
+
+                try {
+                    keystoreFile.parentFile.mkdirs()
+                    keystoreFile.writeBytes(Base64.getDecoder().decode(base64Key))
+                } catch (exception: IllegalArgumentException) {
+                    error("SIGNING_KEY is not valid base64: ${exception.message}")
+                }
+
+                require(keystoreFile.isFile) {
+                    "Decoded release keystore was not created"
+                }
+
                 storeFile = keystoreFile
-                storePassword = storePasswordProp
-                keyAlias = keyAliasProp
-                keyPassword = keyPasswordProp
+                this.storePassword = storePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
                 enableV1Signing = true
                 enableV2Signing = true
                 enableV3Signing = true
-            } else {
-                initWith(getByName("debug"))
             }
         }
     }
