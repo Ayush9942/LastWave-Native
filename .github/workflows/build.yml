@@ -33,6 +33,29 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: Ensure Android debug keystore exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          debug_keystore="${ANDROID_USER_HOME:-$HOME/.config}/.android/debug.keystore"
+          mkdir -p "$(dirname "$debug_keystore")"
+
+          if [[ ! -f "$debug_keystore" ]]; then
+            keytool -genkeypair \
+              -v \
+              -keystore "$debug_keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+          chmod 600 "$debug_keystore"
+
       - name: Grant Gradle execute permission
         run: chmod +x gradlew
 
