@@ -79,7 +79,7 @@ class WebSocketManager @Inject constructor() {
     }
 
     fun sendSeek(positionMs: Long) {
-        sendEvent(RoomMessage(type = ActionType.SEEK, positionMs = positionMs))
+        sendEvent(RoomMessage(type = ActionType.SEEK, position = positionMs))
     }
 
     fun disconnect() {

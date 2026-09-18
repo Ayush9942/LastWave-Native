@@ -295,46 +295,44 @@ class MusicPlaybackService : MediaBrowserServiceCompat() {
     }
 
     private fun observeWebSocketEvents() {
-    scope.launch {
-        webSocketManager.events.collect { event ->
-            when (event.type?.uppercase()) {
-                "PLAY" -> {
+        scope.launch {
+            webSocketManager.events.collect { event ->
+                when (event.type) {
+                    ActionType.PLAY -> {
                     musicPlayer.resume()
-                }
-                "PAUSE" -> {
-                    musicPlayer.pause()
-                }
-                "SEEK" -> {
-                    event.Position?.let { position ->
-                        musicPlayer.seekTo(position)
                     }
-                }
-                "SYNC" -> {
-                     event.Position?.let { position->
-                         musicPlayer.seekTo(position)
-                     }
-                     if (event.isPlaying == true) {
+                    ActionType.PAUSE -> {
+                    musicPlayer.pause()
+                    }
+                    ActionType.SEEK -> {
+                        event.position?.let { position ->
+                        musicPlayer.seekTo(position)
+                        }
+                    }
+                    ActionType.SYNC -> {
+                        event.position?.let { position ->
+                            musicPlayer.seekTo(position)
+                        }
+                        if (event.isPlaying) {
                         musicPlayer.resume()
-                    } else {
+                        } else {
                         musicPlayer.pause()
                     }
-                }
-                "TRACK_CHANGE" -> {
-                    event.trackId?.let { id ->
-                      val targetIndex = musicPlayer.state.value.queue.indexOfFirst{
-                          it.videoId == id 
-                      }
-                      if (targetIndex != -1) {
-                          musicPlayer.seekToQueueItem(targetIndex)
-                          musicPlayer.resume()
-                      }
-                        // Load or play the track using your existing queue/player methods
-                        // e.g., musicPlayer.playFromMediaId(trackId)
+                    }
+                    ActionType.TRACK_CHANGE -> {
+                        event.trackId?.let { id ->
+                            val targetIndex = musicPlayer.state.value.queue.indexOfFirst {
+                                it.videoId == id
+                            }
+                            if (targetIndex != -1) {
+                                musicPlayer.seekToQueueItem(targetIndex)
+                                musicPlayer.resume()
+                            }
+                        }
                     }
                 }
             }
         }
-    }
     }
     
     override fun onGetRoot(

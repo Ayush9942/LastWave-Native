@@ -16,7 +16,7 @@ enum class ActionType {
 data class RoomMessage(
     val type: ActionType,
     val trackId: String? = null,
-    val positionMs: Long = 0L,
+    val position: Long? = null,
     val isPlaying: Boolean = false,
     val sentAt: Long = System.currentTimeMillis()
 )
